@@ -67,6 +67,20 @@ def serve_any_other_file(path):
     response.cache_control.max_age = 0  # avoid cache memory
     return response
 
+@app.route('/login', methods=['POST'])
+def login():
+    body = request.get_json(silent=True)
+    if body is None:
+        return jsonify({'msg: You must send information in your body'}), 400
+    if 'email' not in body:
+        return jsonify({'msg: Email field is required, try again'}), 400
+    if 'password' not in body:
+        return jsonify({'msg: Password field is required, try again'}), 400
+    user = User.query.filter_by(email = body('email'))
+    print(User)
+
+@app.route('/register', methods=['POST'])
+def register():
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
