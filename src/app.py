@@ -11,6 +11,10 @@ from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
 
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import jwt_required
+from flask_jwt_extended import JWTManager
 # from models import Person
 
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
@@ -67,6 +71,9 @@ def serve_any_other_file(path):
     response.cache_control.max_age = 0  # avoid cache memory
     return response
 
+app.config["JWT_SECRET_KEY"] = "super-secret"  # Change this!
+jwt = JWTManager(app)
+
 @app.route('/login', methods=['POST'])
 def login():
     body = request.get_json(silent=True)
@@ -76,13 +83,22 @@ def login():
         return jsonify({'msg: Email field is required, try again'}), 400
     if 'password' not in body:
         return jsonify({'msg: Password field is required, try again'}), 400
-    user = User.query.filter_by(email = body('email'))
-    print(User)
+    user = User.query.filter_by(email = body('email')).first()
+    if user is None: 
+        return jsonify({'msg': 'User or password is not correct'}), 400
+    if user.password != body ['password']:
+        return jsonify({'msg': 'User or password is not correct'}), 400
+    access_token = create_access_token(identity=user.id)
+    return jsonify({'msg': 'Ok', 'token': access_token}), 200
+
+@app.route('/protected', methods=['GET'])
+def protected():
+    return jsonify({'msg': 'Ok'}), 200
 
 @app.route('/register', methods=['POST'])
 def register():
 
 # this only runs if `$ python src/main.py` is executed
-if __name__ == '__main__':
-    PORT = int(os.environ.get('PORT', 3001))
-    app.run(host='0.0.0.0', port=PORT, debug=True)
+    if __name__ == '__main__':
+        PORT = int(os.environ.get('PORT', 3001))
+        app.run(host='0.0.0.0', port=PORT, debug=True)
