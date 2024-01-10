@@ -71,8 +71,6 @@ def serve_any_other_file(path):
     response.cache_control.max_age = 0  # avoid cache memory
     return response
 
-app.config["JWT_SECRET_KEY"] = "super-secret"  # Change this!
-jwt = JWTManager(app)
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -93,11 +91,28 @@ def login():
 
 @app.route('/protected', methods=['GET'])
 def protected():
-    return jsonify({'msg': 'Ok'}), 200
+    current_user = get_jwt_identity()
+    return jsonify({'msg': 'Ok', 'user': current_user}), 200
+
+app.config["JWT_SECRET_KEY"] = "super-secret"  # Change this!
+jwt = JWTManager(app)
 
 @app.route('/register', methods=['POST'])
 def register():
-
+    body = request.get_json(silent=True)
+    if body is None:
+        return jsonify({'msg: You must send information in your body'}), 400
+    if 'email' not in body:
+        return jsonify({'msg: Email field is required, try again'}), 400
+    if 'password' not in body:
+        return jsonify({'msg: Password field is required, try again'}), 400
+    user = User()
+    user.email = body['email']
+    user.password = body['password']
+    user_is_active = True
+    db.session.add(user)
+    db.session.commit()
+    
 # this only runs if `$ python src/main.py` is executed
     if __name__ == '__main__':
         PORT = int(os.environ.get('PORT', 3001))
